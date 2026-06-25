@@ -1,0 +1,231 @@
+version: "3"
+
+services:
+
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    environment:
+      - CLUSTER_NAME=hadoop-cluster
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_webhdfs_enabled=true
+      - HDFS_CONF_dfs_namenode_rpc_bind_host=0.0.0.0
+      - HDFS_CONF_dfs_namenode_servicerpc_bind_host=0.0.0.0
+      - HDFS_CONF_dfs_namenode_http_bind_host=0.0.0.0
+      - HDFS_CONF_dfs_namenode_https_bind_host=0.0.0.0
+      - HDFS_CONF_dfs_client_use_datanode_hostname=true
+      - HDFS_CONF_dfs_datanode_use_datanode_hostname=true
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    volumes:
+      - namenode:/hadoop/dfs/name
+      - ./data/raw:/tmp/data
+      - ./scripts:/tmp/scripts
+    networks:
+      - data-platform
+
+  datanode1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode1
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_client_use_datanode_hostname=true
+      - HDFS_CONF_dfs_datanode_use_datanode_hostname=true
+    depends_on:
+      - namenode
+    volumes:
+      - datanode1:/hadoop/dfs/data
+    networks:
+      - data-platform
+
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode2
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_client_use_datanode_hostname=true
+      - HDFS_CONF_dfs_datanode_use_datanode_hostname=true
+    depends_on:
+      - namenode
+    volumes:
+      - datanode2:/hadoop/dfs/data
+    networks:
+      - data-platform
+
+  datanode3:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode3
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_client_use_datanode_hostname=true
+      - HDFS_CONF_dfs_datanode_use_datanode_hostname=true
+    depends_on:
+      - namenode
+    volumes:
+      - datanode3:/hadoop/dfs/data
+    networks:
+      - data-platform
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+    ports:
+      - "8088:8088"
+    networks:
+      - data-platform
+
+  nodemanager1:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager1
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+    depends_on:
+      - resourcemanager
+    networks:
+      - data-platform
+
+  nodemanager2:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager2
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+    depends_on:
+      - resourcemanager
+    networks:
+      - data-platform
+
+  nodemanager3:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager3
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+    depends_on:
+      - resourcemanager
+    networks:
+      - data-platform
+
+  postgres:
+    image: postgres:11
+    container_name: postgres
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+    networks:
+      - data-platform
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://namenode:9000
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionURL: jdbc:postgresql://postgres:5432/metastore
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionDriverName: org.postgresql.Driver
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionUserName: hive
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionPassword: hive
+
+      SERVICE_PRECONDITION: "namenode:9000 postgres:5432"
+    ports:
+      - "10000:10000"
+    depends_on:
+      - postgres
+      - namenode
+    volumes:
+      - ./hive:/opt/hive/sql
+      - ./hdfs:/hdfs
+    networks:
+      - data-platform
+      
+  spark-master:
+    image: apache/spark:3.5.0
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    environment:
+     - SPARK_MODE=master
+     - SPARK_MASTER_HOST=spark-master
+     - SPARK_LOCAL_IP=spark-master
+     - SPARK_DRIVER_HOST=spark-master
+     - SPARK_HADOOP_FS_DEFAULTFS=hdfs://namenode:9000
+    ports:
+      - "7077:7077"
+      - "8082:8080"
+    networks:
+      - data-platform
+    volumes:
+      - ./hadoop-conf:/etc/hadoop
+      - ./spark_jobs:/opt/spark/jobs
+
+    
+  spark-worker:
+    image: apache/spark:3.5.0
+    container_name: spark-worker
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_HADOOP_FS_DEFAULTFS=hdfs://namenode:9000
+    networks:
+      - data-platform
+    volumes:
+      - ./hadoop-conf:/etc/hadoop
+
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      - PYSPARK_SUBMIT_ARGS=--master spark://spark-master:7077 pyspark-shell
+      - HADOOP_CONF_DIR=/etc/hadoop
+      - SPARK_HOME=/usr/local/spark
+    networks:
+      - data-platform
+
+  airflow:
+    image: apache/airflow:3.2.2
+    container_name: airflow
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+      _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-apache-spark
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+     - ./dags:/opt/airflow/dags
+     - ./spark_jobs:/opt/airflow/spark_jobs
+     - "C:\\Users\\mathe\\OneDrive\\Desktop\\hadoop\\data\\raw:/opt/airflow/data"
+     
+     - /var/run/docker.sock:/var/run/docker.sock
+
+    command: standalone
+
+    networks:
+       - data-platform
+  airflow-postgres:
+    image: postgres:16
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+
+    networks:
+      - data-platform
+networks:
+  data-platform:
+    external: true
+
+volumes:
+  namenode:
+  datanode1:
+  datanode2:
+  datanode3:
