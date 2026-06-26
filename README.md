@@ -35,7 +35,7 @@ Raw CSV Data
       ▼
  Power BI / DBeaver
 ```
-
+![data-platform ](docs/data-platform.png)
 ---
 
 ## Technologies Used
