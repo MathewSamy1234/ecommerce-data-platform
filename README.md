@@ -88,7 +88,7 @@ ingestion
 
 
 
-![Airflow DAG2](docs/silver_to_gold-graph (1).png)
+![Airflow DAG2](docs/silver_to_gold-graph(1).png)
 
 
 ## Data Pipeline
