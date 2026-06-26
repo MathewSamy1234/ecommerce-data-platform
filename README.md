@@ -86,12 +86,9 @@ The pipeline is orchestrated using Apache Airflow.
 ingestion 
 ![Airflow DAG1](docs/bronze_webhdfs_ingestion-graph.png)
 
-bronze-->silver
-![Airflow DAG1](docs/bronze_to_silver-graph.png)
 
 
-silver-->gold
-![Airflow DAG1](docs/silver_to_gold-graph (1).png)
+![Airflow DAG2](docs/silver_to_gold-graph (1).png)
 
 
 ## Data Pipeline
