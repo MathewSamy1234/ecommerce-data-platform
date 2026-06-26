@@ -149,6 +149,7 @@ GROUP BY p.product_category_name
 ORDER BY total_revenue DESC
 LIMIT 10;
 ```
+![query](docs/query1.png)
 
 ### Revenue by State
 
@@ -162,6 +163,8 @@ JOIN gold.dim_customers c
 GROUP BY c.customer_state
 ORDER BY revenue DESC;
 ```
+![query2](docs/query2.png)
+
 
 ### Top Sellers
 
@@ -176,6 +179,7 @@ GROUP BY s.seller_id
 ORDER BY revenue DESC
 LIMIT 10;
 ```
+![query3](docs/query3.png)
 
 ---
 
